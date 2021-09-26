@@ -120,9 +120,9 @@ func TestLoad(t *testing.T) {
 		F  **float32 `go_ohm:"hash_field=f"`
 		S  **string  `go_ohm:"hash_field=s"`
 		S2 **string  `go_ohm:"-"` // ignored
-		S3 **string  `go_ohm:"hash_field=s3,should_jsonify"`
-		S4 **test2   `go_ohm:"hash_field=s4,should_jsonify"`
-		S5 **test2   `go_ohm:"hash_field=s5,hash_key=test2"`
+		S3 **string  `go_ohm:"hash_field=s3,json"`
+		S4 **test2   `go_ohm:"hash_field=s4"`
+		S5 **test2   `go_ohm:"hash_field=s5,hash_key=test2,non_json"`
 		B  bool      `go_ohm:"hash_field=b"`
 		B2 []byte    `go_ohm:"hash_field=b2"`
 	}
@@ -131,32 +131,32 @@ func TestLoad(t *testing.T) {
 		var e *ErrorUnsupportedObjectType
 
 		var v1 interface{}
-		err := Load(c, "test1", v1)
+		err := Load(c, "test#", "test1", v1)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		var v2 chan int
-		err = Load(c, "test1", v2)
+		err = Load(c, "test#", "test1", v2)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		var v3 chan int
-		err = Load(c, "test1", &v3)
+		err = Load(c, "test#", "test1", &v3)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		v4 := struct{ A **interface{} }{}
-		err = Load(c, "test1", &v4)
+		err = Load(c, "test#", "test1", &v4)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		var e2 *ErrorObjectWithoutHashKey
 		v5 := struct{ A **int }{}
-		err = Load(c, "", &v5)
+		err = Load(c, "test#", "", &v5)
 		if !errors.As(err, &e2) {
 			t.Error(err)
 		}
@@ -164,30 +164,28 @@ func TestLoad(t *testing.T) {
 
 	t.Run("test Load() nil", func(t *testing.T) {
 		t1 := &test1{}
-		err := Load(c, "test1", t1)
+		err := Load(c, "test#", "test1", t1)
 		if err != nil {
 			t.Error(err)
 		} else if t1.i != 0 || t1.I2 != 0 || t1.F != nil || t1.S != nil ||
 			t1.S2 != nil || t1.B != false || t1.B2 != nil {
 			t.Error("wrong value: ", t1)
 		}
-
 	})
 
 	t.Run("test Load() normal", func(t *testing.T) {
-		s.HSet("test1", "i", "2", "i2", "2", "f", "2.0", "s", "2",
-			"s2", "2", "s3", "\"2\"", "s4", "{\"I\": 2}", "c", "2",
+		s.HSet("test#test2#test2", "I", "2")
+		s.HSet("test#test1#test1", "i", "2", "i2", "2", "f", "2.0",
+			"s", "2", "s2", "2", "s3", "\"2\"", "s4", "{\"I\": 2}", "c", "2",
 			"b", "2", "b2", "2")
-		s.HSet("test2", "I", "2")
 		t1 := &test1{}
-		err = Load(c, "test1", t1)
+		err = Load(c, "test#", "test1", t1)
 		if err != nil {
 			t.Error(err)
 		} else if t1.i != 0 || t1.I2 != 2 || **t1.F != 2.0 || **t1.S != "2" ||
 			t1.S2 != nil || **t1.S3 != "2" || (**t1.S4).I != 2 ||
-			(**t1.S5).I != 2 || t1.B != true ||
-			!bytes.Equal(t1.B2, []byte("2")) {
-			t.Errorf("wrong value: %+v, %v", t1, **t1.S3)
+			(**t1.S5).I != 2 || t1.B != true || !bytes.Equal(t1.B2, []byte("2")) {
+			t.Errorf("wrong value: %++v, %v", t1, t1.S3)
 		}
 	})
 }
