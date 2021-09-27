@@ -6,24 +6,43 @@ import (
 )
 
 type mapObject struct {
-	*object
+	*compoundObject
 
 	// Reflected type of index, for map only.
 	indexTyp reflect.Type
 
-	reply [][]byte
+	// redis reply of a redis hash.
+	reply map[string]string
+}
+
+func (o *mapObject) getDescendants(objList *[]*compoundObject) {
+	*objList = append(*objList, o.compoundObject)
 }
 
 func (o *mapObject) doRedisHMGet(conn redis.Conn, prefix string) error {
+	key, err := o.genRedisHashKey(prefix)
+	if err != nil {
+		return err
+	}
+
+	rep, err := redis.StringMap(conn.Do("HGETALL", key))
+	if err != nil {
+		return NewErrorRedisCommandFailed(o.name, err)
+	}
+
+	o.reply = rep
 	return nil
 }
 
 func (o *mapObject) renderValue() error {
+	o.createIndirectValues()
+
 	return nil
 }
 
 func (o *mapObject) complete() error {
 	o.indexTyp = o.typ.Key()
+
 	switch o.indexTyp.Kind() {
 	case reflect.Int:
 	case reflect.Int8:
@@ -43,8 +62,13 @@ func (o *mapObject) complete() error {
 	return nil
 }
 
-func completeMapObject(bo *object) error {
-	obj := &mapObject{object: bo}
-	bo.concreteObject = obj
-	return obj.complete()
+func newMapObject(co *compoundObject) (*mapObject, error) {
+	obj := &mapObject{compoundObject: co}
+	obj.abstractCompoundObject = obj
+	err := obj.complete()
+	if err != nil {
+		return nil, err
+	}
+
+	return obj, nil
 }
