@@ -1,18 +1,11 @@
 package go_ohm
 
 import (
-	"github.com/gomodule/redigo/redis"
 	"reflect"
 )
 
-type concreteObject interface {
+type abstractObject interface {
 	renderValue() error
-}
-
-type compoundObject interface {
-	concreteObject
-	getDescendants(objList *[]*object)
-	doRedisHMGet(conn redis.Conn, prefix string) error
 }
 
 type objectOptions struct {
@@ -26,7 +19,7 @@ type objectOptions struct {
 
 type object struct {
 	name   string
-	parent *object
+	parent *compoundObject
 	*objectOptions
 
 	// Reflected concrete type of the object. If original reflected type is
@@ -37,10 +30,12 @@ type object struct {
 	// Reflected valid concrete value for the object. If typ is indirect, here
 	// stored the eventual valid value. EX:
 	//
-	// 	var b *int = nil
-	//	var a **int = &b
+	// 	var a *int = nil
+	//	var b **int = &a
+	//  var c interface{} = &b
+	//  var d *interface{} = &c
 	//
-	// Then *value is reflect.ValueOf(b), which type is *int, and indirect is 1.
+	// Then *value is reflect.ValueOf(a), which type is *int, and indirect is 3.
 	//
 	// And sometimes value can be nil. EX, there are two structs and a variable:
 	//
@@ -58,7 +53,7 @@ type object struct {
 	value    *reflect.Value
 	indirect int
 
-	concreteObject
+	abstractObject
 }
 
 var tagIdentifier = "go_ohm"
@@ -75,10 +70,6 @@ func (o *object) isTiledObject() bool {
 }
 
 func (o *object) createIndirectValues() {
-	if o.indirect <= 0 {
-		return
-	}
-
 	v := o.value
 	for i := 0; i < o.indirect; i++ {
 		t := v.Type().Elem()
@@ -102,7 +93,7 @@ func isPrimitiveType(typ reflect.Type) bool {
 		(typ.Kind() == reflect.Array && typ.Elem().Kind() == reflect.Uint8)
 }
 
-func objectConcreteType(typ reflect.Type,
+func advanceIndirectTypeAndValue(typ reflect.Type,
 	val *reflect.Value) (reflect.Type, *reflect.Value, int) {
 	if val != nil && val.IsValid() {
 		for val.Kind() == reflect.Ptr || val.Kind() == reflect.Interface {
@@ -126,7 +117,7 @@ func objectConcreteType(typ reflect.Type,
 	return typ, val, indirect
 }
 
-func buildObject(name string, parent *object, opts *objectOptions,
+func buildObject(name string, parent *compoundObject, opts *objectOptions,
 	typ reflect.Type, val *reflect.Value, indirect int) (*object, error) {
 	obj := &object{
 		name:          name,
@@ -139,11 +130,11 @@ func buildObject(name string, parent *object, opts *objectOptions,
 
 	var err error
 	if obj.isPlainObject() {
-		err = completePlainObject(obj)
+		_, err = completePlainObject(obj)
 	} else if typ.Kind() == reflect.Struct {
-		err = completeStructObject(obj)
+		_, err = completeStructObject(obj)
 	} else if typ.Kind() == reflect.Map {
-		err = completeMapObject(obj)
+		_, err = completeMapObject(obj)
 	} else {
 		err = NewErrorUnsupportedObjectType(name)
 	}

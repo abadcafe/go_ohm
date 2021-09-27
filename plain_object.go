@@ -9,11 +9,11 @@ import (
 type plainObject struct {
 	*object
 
-	// redis reply for a redis hash field.
+	// redis reply of a redis hash field.
 	reply []byte
 }
 
-func (o *plainObject) genHMGetHashField() string {
+func (o *plainObject) genHashField() string {
 	if o.hashField != "" {
 		return o.hashField
 	}
@@ -92,7 +92,8 @@ func (o *plainObject) renderValue() error {
 	return nil
 }
 
-func completePlainObject(bo *object) error {
-	bo.concreteObject = &plainObject{object: bo}
-	return nil
+func completePlainObject(o *object) (*plainObject, error) {
+	obj := &plainObject{object: o}
+	o.abstractObject = obj
+	return obj, nil
 }

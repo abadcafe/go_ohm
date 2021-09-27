@@ -5,13 +5,12 @@ import (
 	"reflect"
 )
 
-func doLoadCommands(conn redis.Conn, prefix string, obj *object) error {
-	var cos []*object
-	co := obj.concreteObject.(compoundObject)
-	co.getDescendants(&cos)
+func doLoadCommands(conn redis.Conn, ns string, obj *compoundObject) error {
+	var objs []*compoundObject
 
-	for _, o := range cos {
-		err := o.concreteObject.(compoundObject).doRedisHMGet(conn, prefix)
+	obj.getDescendants(&objs)
+	for _, o := range objs {
+		err := o.doRedisHMGet(conn, ns)
 		if err != nil {
 			return err
 		}
@@ -20,20 +19,20 @@ func doLoadCommands(conn redis.Conn, prefix string, obj *object) error {
 	return nil
 }
 
-func Load(conn redis.Conn, prefix string, key string, data interface{}) error {
+func Load(conn redis.Conn, ns string, key string, data interface{}) error {
 	name := rootObjectName
 
-	typ := reflect.TypeOf(data)
-	if typ == nil {
+	t := reflect.TypeOf(data)
+	if t == nil {
 		return NewErrorUnsupportedObjectType(name)
 	}
 
-	val0 := reflect.ValueOf(data)
-	if !val0.IsValid() {
+	v := reflect.ValueOf(data)
+	if !v.IsValid() {
 		return NewErrorUnsupportedObjectType(name)
 	}
 
-	typ, val, indirect := objectConcreteType(typ, &val0)
+	typ, val, indirect := advanceIndirectTypeAndValue(t, &v)
 	if isIgnoredType(typ) {
 		// do not support those types, skip.
 		return NewErrorUnsupportedObjectType(name)
@@ -50,9 +49,11 @@ func Load(conn redis.Conn, prefix string, key string, data interface{}) error {
 	obj, err := buildObject(name, nil, opts, typ, val, indirect)
 	if err != nil {
 		return err
+	} else if obj.isPlainObject() {
+		return NewErrorUnsupportedObjectType(name)
 	}
 
-	err = doLoadCommands(conn, prefix, obj)
+	err = doLoadCommands(conn, ns, obj.abstractObject.(*compoundObject))
 	if err != nil {
 		return err
 	}

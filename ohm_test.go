@@ -30,52 +30,52 @@ func TestObjectConcreteValue(t *testing.T) {
 	var d12 struct{ A **interface{} } = struct{ A **interface{} }{d9}
 
 	t.Run("test objectConcreteValue()", func(t *testing.T) {
-		typ, val, ind := objectConcreteType(getTypeValue(d1))
+		typ, val, ind := advanceIndirectTypeAndValue(getTypeValue(d1))
 		if typ.Kind() != reflect.Int || val.IsZero() || ind != 0 {
 			t.Error(typ, val, ind)
 		}
 
-		typ, val, ind = objectConcreteType(getTypeValue(d2))
+		typ, val, ind = advanceIndirectTypeAndValue(getTypeValue(d2))
 		if typ.Kind() != reflect.Int || val.IsZero() || ind != 0 {
 			t.Error(typ, val, ind)
 		}
 
-		typ, val, ind = objectConcreteType(getTypeValue(d3))
+		typ, val, ind = advanceIndirectTypeAndValue(getTypeValue(d3))
 		if typ.Kind() != reflect.Int || val.IsZero() || ind != 0 {
 			t.Error(typ, val, ind)
 		}
 
-		typ, val, ind = objectConcreteType(getTypeValue(d4))
+		typ, val, ind = advanceIndirectTypeAndValue(getTypeValue(d4))
 		if typ.Kind() != reflect.Int || val.IsZero() || ind != 0 {
 			t.Error(typ, val, ind)
 		}
 
-		typ, val, ind = objectConcreteType(getTypeValue(d5))
+		typ, val, ind = advanceIndirectTypeAndValue(getTypeValue(d5))
 		if typ.Kind() != reflect.Int || val.IsZero() || ind != 0 {
 			t.Error(typ, val, ind)
 		}
 
-		typ, val, ind = objectConcreteType(getTypeValue(d6))
+		typ, val, ind = advanceIndirectTypeAndValue(getTypeValue(d6))
 		if typ.Kind() != reflect.Int || !val.IsZero() || ind != 3 {
 			t.Error(typ, val, ind)
 		}
 
-		typ, val, ind = objectConcreteType(getTypeValue(d7))
+		typ, val, ind = advanceIndirectTypeAndValue(getTypeValue(d7))
 		if typ.Kind() != reflect.Int || !val.IsZero() || ind != 3 {
 			t.Error(typ, val, ind)
 		}
 
-		typ, val, ind = objectConcreteType(getTypeValue(d8))
+		typ, val, ind = advanceIndirectTypeAndValue(getTypeValue(d8))
 		if typ.Kind() != reflect.Int || !val.IsZero() || ind != 3 {
 			t.Error(typ, val, ind)
 		}
 
-		typ, val, ind = objectConcreteType(getTypeValue(d9))
+		typ, val, ind = advanceIndirectTypeAndValue(getTypeValue(d9))
 		if typ.Kind() != reflect.Int || !val.IsZero() || ind != 3 {
 			t.Error(typ, val, ind)
 		}
 
-		typ, val, ind = objectConcreteType(getTypeValue(d10))
+		typ, val, ind = advanceIndirectTypeAndValue(getTypeValue(d10))
 		if typ.Kind() != reflect.Interface || !val.IsZero() || ind != 2 {
 			t.Error(typ, val, ind)
 		}
@@ -84,7 +84,7 @@ func TestObjectConcreteValue(t *testing.T) {
 		typ = typ.Field(0).Type
 		v := val.Field(0)
 		val = &v
-		typ, val, ind = objectConcreteType(typ, val)
+		typ, val, ind = advanceIndirectTypeAndValue(typ, val)
 		if typ.Kind() != reflect.Interface || !val.IsZero() || ind != 0 {
 			t.Error(typ, val, ind)
 		}
@@ -93,7 +93,7 @@ func TestObjectConcreteValue(t *testing.T) {
 		typ = typ.Field(0).Type
 		v = val.Field(0)
 		val = &v
-		typ, val, ind = objectConcreteType(typ, val)
+		typ, val, ind = advanceIndirectTypeAndValue(typ, val)
 		if typ.Kind() != reflect.Int || !val.IsZero() || ind != 3 {
 			t.Error(typ, val, ind)
 		}
@@ -131,32 +131,32 @@ func TestLoad(t *testing.T) {
 		var e *ErrorUnsupportedObjectType
 
 		var v1 interface{}
-		err := Load(c, "test#", "test1", v1)
+		err := Load(c, "test", "test1", v1)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		var v2 chan int
-		err = Load(c, "test#", "test1", v2)
+		err = Load(c, "test", "test1", v2)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		var v3 chan int
-		err = Load(c, "test#", "test1", &v3)
+		err = Load(c, "test", "test1", &v3)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		v4 := struct{ A **interface{} }{}
-		err = Load(c, "test#", "test1", &v4)
+		err = Load(c, "test", "test1", &v4)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		var e2 *ErrorObjectWithoutHashKey
 		v5 := struct{ A **int }{}
-		err = Load(c, "test#", "", &v5)
+		err = Load(c, "test", "", &v5)
 		if !errors.As(err, &e2) {
 			t.Error(err)
 		}
@@ -164,7 +164,7 @@ func TestLoad(t *testing.T) {
 
 	t.Run("test Load() nil", func(t *testing.T) {
 		t1 := &test1{}
-		err := Load(c, "test#", "test1", t1)
+		err := Load(c, "test", "test1", t1)
 		if err != nil {
 			t.Error(err)
 		} else if t1.i != 0 || t1.I2 != 0 || t1.F != nil || t1.S != nil ||
@@ -179,7 +179,7 @@ func TestLoad(t *testing.T) {
 			"s", "2", "s2", "2", "s3", "\"2\"", "s4", "{\"I\": 2}", "c", "2",
 			"b", "2", "b2", "2")
 		t1 := &test1{}
-		err = Load(c, "test#", "test1", t1)
+		err = Load(c, "test", "test1", t1)
 		if err != nil {
 			t.Error(err)
 		} else if t1.i != 0 || t1.I2 != 2 || **t1.F != 2.0 || **t1.S != "2" ||
