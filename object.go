@@ -13,12 +13,13 @@ type objectOptions struct {
 	hashField   string
 	hashPrefix  string
 	reference   string
-	nonJson     bool
+	json        bool
 	elemNonJson bool
 }
 
 type object struct {
 	name   string
+	anonymous bool
 	parent *compoundObject
 	*objectOptions
 
@@ -61,11 +62,11 @@ var rootObjectName = "root object"
 
 func (o *object) isPlainObject() bool {
 	return (o.typ.Kind() != reflect.Struct && o.typ.Kind() != reflect.Map) ||
-		!o.nonJson
+		o.json
 }
 
-func (o *object) isTiledObject() bool {
-	return o.typ.Kind() == reflect.Struct && o.name == "" && o.nonJson &&
+func (o *object) isPromotedObject() bool {
+	return o.typ.Kind() == reflect.Struct && o.anonymous && !o.json &&
 		o.reference == "" && o.hashKey == ""
 }
 
@@ -118,9 +119,11 @@ func advanceIndirectTypeAndValue(typ reflect.Type,
 }
 
 func newObject(name string, parent *compoundObject, opts *objectOptions,
-	typ reflect.Type, val *reflect.Value, indirect int) (*object, error) {
+	typ reflect.Type, val *reflect.Value, indirect int, anon bool) (*object,
+	error) {
 	obj := &object{
 		name:          name,
+		anonymous: anon,
 		objectOptions: opts,
 		typ:           typ,
 		value:         val,

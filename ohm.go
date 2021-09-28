@@ -43,10 +43,10 @@ func Load(conn redis.Conn, ns string, key string, data interface{}) error {
 		hashKey:     key,
 		hashField:   "",
 		reference:   "",
-		nonJson:     true,
+		json:        false,
 		elemNonJson: false,
 	}
-	obj, err := newObject(name, nil, opts, typ, val, indirect)
+	obj, err := newObject(name, nil, opts, typ, val, indirect, false)
 	if err != nil {
 		return err
 	} else if obj.isPlainObject() {

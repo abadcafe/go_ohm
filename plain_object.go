@@ -28,7 +28,7 @@ func (o *plainObject) renderValue() error {
 
 	o.createIndirectValues()
 
-	if !o.nonJson {
+	if o.json {
 		err := json.Unmarshal(o.reply, o.value.Addr().Interface())
 		if err != nil {
 			return NewErrorJsonFailed(o.name, err)
