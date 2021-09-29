@@ -14,13 +14,13 @@ func NewErrorUnsupportedObjectType(nam string) *ErrorUnsupportedObjectType {
 	}
 }
 
-type ErrorRedisCommandsFailed struct {
+type ErrorRedisCommandFailed struct {
 	error
 }
 
-func NewErrorRedisCommandsFailed(nam string, err error) *ErrorRedisCommandsFailed {
-	return &ErrorRedisCommandsFailed{
-		fmt.Errorf("execute redis commands failed on object '%s': %w", nam, err),
+func NewErrorRedisCommandFailed(nam string, err error) *ErrorRedisCommandFailed {
+	return &ErrorRedisCommandFailed{
+		fmt.Errorf("execute redis command failed on object '%s': %w", nam, err),
 	}
 }
 

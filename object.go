@@ -8,19 +8,11 @@ type abstractObject interface {
 	renderValue() error
 }
 
-type objectOptions struct {
-	hashKey     string
-	hashField   string
-	hashPrefix  string
-	reference   string
-	nonJson     bool
-	elemNonJson bool
-}
-
 type object struct {
 	name   string
+	anonymous bool
 	parent *compoundObject
-	*objectOptions
+	*ObjectOptions
 
 	// Reflected concrete type of the object. If original reflected type is
 	// multiple level Pointer or Interface (A.K.A. indirect), here stored the
@@ -61,11 +53,11 @@ var rootObjectName = "root object"
 
 func (o *object) isPlainObject() bool {
 	return (o.typ.Kind() != reflect.Struct && o.typ.Kind() != reflect.Map) ||
-		!o.nonJson
+		o.json
 }
 
-func (o *object) isTiledObject() bool {
-	return o.typ.Kind() == reflect.Struct && o.name == "" && o.nonJson &&
+func (o *object) isPromotedObject() bool {
+	return o.typ.Kind() == reflect.Struct && o.anonymous && !o.json &&
 		o.reference == "" && o.hashKey == ""
 }
 
@@ -117,11 +109,13 @@ func advanceIndirectTypeAndValue(typ reflect.Type,
 	return typ, val, indirect
 }
 
-func buildObject(name string, parent *compoundObject, opts *objectOptions,
-	typ reflect.Type, val *reflect.Value, indirect int) (*object, error) {
+func newObject(name string, parent *compoundObject, opts *ObjectOptions,
+	typ reflect.Type, val *reflect.Value, indirect int, anon bool) (*object,
+	error) {
 	obj := &object{
 		name:          name,
-		objectOptions: opts,
+		anonymous:     anon,
+		ObjectOptions: opts,
 		typ:           typ,
 		value:         val,
 		indirect:      indirect,
@@ -130,11 +124,21 @@ func buildObject(name string, parent *compoundObject, opts *objectOptions,
 
 	var err error
 	if obj.isPlainObject() {
-		_, err = completePlainObject(obj)
+		_, err = newPlainObject(obj)
 	} else if typ.Kind() == reflect.Struct {
-		_, err = completeStructObject(obj)
+		var co *compoundObject
+		co, err = newCompoundObject(obj)
+		if err != nil {
+			return nil, err
+		}
+		_, err = newStructObject(co)
 	} else if typ.Kind() == reflect.Map {
-		_, err = completeMapObject(obj)
+		var co *compoundObject
+		co, err = newCompoundObject(obj)
+		if err != nil {
+			return nil, err
+		}
+		_, err = newMapObject(co)
 	} else {
 		err = NewErrorUnsupportedObjectType(name)
 	}

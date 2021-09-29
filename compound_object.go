@@ -36,10 +36,22 @@ func (o *compoundObject) genHashKey() string {
 		return ""
 	}
 
-	parent := o.parent.abstractCompoundObject.(*structObject)
+	parent, ok := o.parent.abstractCompoundObject.(*structObject)
+	if !ok {
+		return ""
+	}
+
 	fld := parent.getFieldByName(ref)
-	v := fld.abstractObject.(*plainObject).reply
-	return string(v)
+	if fld == nil {
+		return ""
+	}
+
+	po, ok := fld.abstractObject.(*plainObject)
+	if !ok {
+		return ""
+	}
+
+	return string(po.reply)
 }
 
 func (o *compoundObject) genRedisHashKey(prefix string) (string, error) {
@@ -53,7 +65,7 @@ func (o *compoundObject) genRedisHashKey(prefix string) (string, error) {
 	return key, nil
 }
 
-func completeCompoundObject(o *object) (*compoundObject, error) {
+func newCompoundObject(o *object) (*compoundObject, error) {
 	obj := &compoundObject{object: o}
 	o.abstractObject = obj
 	return obj, nil

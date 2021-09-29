@@ -27,7 +27,7 @@ func (o *mapObject) doRedisHMGet(conn redis.Conn, prefix string) error {
 
 	rep, err := redis.StringMap(conn.Do("HGETALL", key))
 	if err != nil {
-		return NewErrorRedisCommandsFailed(o.name, err)
+		return NewErrorRedisCommandFailed(o.name, err)
 	}
 
 	o.reply = rep
@@ -62,15 +62,10 @@ func (o *mapObject) complete() error {
 	return nil
 }
 
-func completeMapObject(o *object) (*mapObject, error) {
-	co, err := completeCompoundObject(o)
-	if err != nil {
-		return nil, err
-	}
-
+func newMapObject(co *compoundObject) (*mapObject, error) {
 	obj := &mapObject{compoundObject: co}
 	obj.abstractCompoundObject = obj
-	err = obj.complete()
+	err := obj.complete()
 	if err != nil {
 		return nil, err
 	}

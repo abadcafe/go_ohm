@@ -35,7 +35,7 @@ func (o *structObject) getPlainFields() []*plainObject {
 	var ret []*plainObject
 
 	for _, obj := range o.fields {
-		if obj.isTiledObject() {
+		if obj.isPromotedObject() {
 			so := obj.abstractObject.(*compoundObject).abstractCompoundObject.
 				(*structObject)
 			ret = append(ret, so.getPlainFields()...)
@@ -52,7 +52,7 @@ func (o *structObject) getForeignObjects() []*compoundObject {
 	var ret []*compoundObject
 
 	for _, obj := range o.fields {
-		if obj.isTiledObject() {
+		if obj.isPromotedObject() {
 			so := obj.abstractObject.(*compoundObject).abstractCompoundObject.
 				(*structObject)
 			ret = append(ret, so.getForeignObjects()...)
@@ -73,6 +73,7 @@ func (o *structObject) getDescendants(objList *[]*compoundObject) {
 
 func (o *structObject) genHMGetArgs() []interface{} {
 	var args []interface{}
+
 	for _, obj := range o.getPlainFields() {
 		args = append(args, obj.genHashField())
 	}
@@ -80,7 +81,7 @@ func (o *structObject) genHMGetArgs() []interface{} {
 	return args
 }
 
-func parseObjectOptions(t string, opts *objectOptions) bool {
+func parseObjectOptions(t string, opts *ObjectOptions) bool {
 	if t == "" {
 		return false
 	} else if t == "-" {
@@ -101,10 +102,10 @@ func parseObjectOptions(t string, opts *objectOptions) bool {
 			opts.reference = v
 		},
 		"json": func(v string) {
-			opts.nonJson = false
+			opts.json = true
 		},
 		"non_json": func(v string) {
-			opts.nonJson = true
+			opts.json = false
 		},
 		"elem_json": func(v string) {
 			opts.elemNonJson = false
@@ -139,10 +140,14 @@ func (o *structObject) doRedisHMGet(conn redis.Conn, ns string) error {
 
 	args := []interface{}{key}
 	args = append(args, o.genHMGetArgs()...)
+	if len(args) <= 1 {
+		// nothing to do.
+		return nil
+	}
 
 	rep, err := redis.ByteSlices(conn.Do("HMGET", args...))
 	if err != nil {
-		return NewErrorRedisCommandsFailed(o.name, err)
+		return NewErrorRedisCommandFailed(o.name, err)
 	}
 
 	for i, po := range o.getPlainFields() {
@@ -174,20 +179,38 @@ func (o *structObject) complete() error {
 	typ := o.typ
 	for i := 0; i < typ.NumField(); i++ {
 		fld := typ.Field(i)
-		if !fld.IsExported() {
-			continue
-		}
-
+		fldNam := fld.Name
+		fldAnon := fld.Anonymous
 		fldTyp := fld.Type
 		fldVal := (*reflect.Value)(nil)
-		if o.indirect <= 0 {
-			fv := o.value.Field(i)
-			fldVal = &fv
+
+		if !fld.IsExported() {
+			if !fldAnon {
+				continue
+			}
+
+			// can not set unexported anonymous struct pointer field's value,
+			// should skip those cases.
+			if fldTyp.Kind() == reflect.Ptr {
+				if o.indirect > 0 {
+					// Case 1, parent is nil. Even allocated new struct, the
+					// anonymous field is nil and can not be set.
+					continue
+				}
+
+				v := o.value.Field(i)
+				if v.IsNil() {
+					// Case 2, the anonymous field itself is nil.
+					continue
+				}
+
+				fldVal = &v
+			}
 		}
 
-		fldNam := ""
-		if !fld.Anonymous {
-			fldNam = fld.Name
+		if fldVal == nil && o.indirect <= 0 {
+			v := o.value.Field(i)
+			fldVal = &v
 		}
 
 		fldTyp, fldVal, indirect := advanceIndirectTypeAndValue(fldTyp, fldVal)
@@ -196,10 +219,12 @@ func (o *structObject) complete() error {
 			return NewErrorUnsupportedObjectType(fldNam)
 		}
 
-		fldOpts := &objectOptions{}
-		if isPrimitiveType(fldTyp) {
-			// for primitive types, default to non json to improve performance.
-			fldOpts.nonJson = true
+		fldOpts := &ObjectOptions{}
+		if !isPrimitiveType(fldTyp) && !fldAnon {
+			// For primitive types, default to non json to improve performance,
+			// And for anonymous fields, default to non json to promote its
+			// fields.
+			fldOpts.json = true
 		}
 
 		ignore := parseObjectOptions(fld.Tag.Get(tagIdentifier), fldOpts)
@@ -207,8 +232,8 @@ func (o *structObject) complete() error {
 			continue
 		}
 
-		fldObj, err := buildObject(fldNam, o.compoundObject, fldOpts, fldTyp,
-			fldVal, indirect)
+		fldObj, err := newObject(fldNam, o.compoundObject, fldOpts, fldTyp,
+			fldVal, indirect, fldAnon)
 		if err != nil {
 			return err
 		}
@@ -219,15 +244,10 @@ func (o *structObject) complete() error {
 	return nil
 }
 
-func completeStructObject(o *object) (*structObject, error) {
-	co, err := completeCompoundObject(o)
-	if err != nil {
-		return nil, err
-	}
-
+func newStructObject(co *compoundObject) (*structObject, error) {
 	obj := &structObject{compoundObject: co}
 	obj.abstractCompoundObject = obj
-	err = obj.complete()
+	err := obj.complete()
 	if err != nil {
 		return nil, err
 	}

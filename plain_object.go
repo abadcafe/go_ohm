@@ -28,7 +28,7 @@ func (o *plainObject) renderValue() error {
 
 	o.createIndirectValues()
 
-	if !o.nonJson {
+	if o.json {
 		err := json.Unmarshal(o.reply, o.value.Addr().Interface())
 		if err != nil {
 			return NewErrorJsonFailed(o.name, err)
@@ -92,7 +92,7 @@ func (o *plainObject) renderValue() error {
 	return nil
 }
 
-func completePlainObject(o *object) (*plainObject, error) {
+func newPlainObject(o *object) (*plainObject, error) {
 	obj := &plainObject{object: o}
 	o.abstractObject = obj
 	return obj, nil
