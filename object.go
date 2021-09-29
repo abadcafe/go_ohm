@@ -8,20 +8,11 @@ type abstractObject interface {
 	renderValue() error
 }
 
-type objectOptions struct {
-	hashKey     string
-	hashField   string
-	hashPrefix  string
-	reference   string
-	json        bool
-	elemNonJson bool
-}
-
 type object struct {
 	name   string
 	anonymous bool
 	parent *compoundObject
-	*objectOptions
+	*ObjectOptions
 
 	// Reflected concrete type of the object. If original reflected type is
 	// multiple level Pointer or Interface (A.K.A. indirect), here stored the
@@ -118,13 +109,13 @@ func advanceIndirectTypeAndValue(typ reflect.Type,
 	return typ, val, indirect
 }
 
-func newObject(name string, parent *compoundObject, opts *objectOptions,
+func newObject(name string, parent *compoundObject, opts *ObjectOptions,
 	typ reflect.Type, val *reflect.Value, indirect int, anon bool) (*object,
 	error) {
 	obj := &object{
 		name:          name,
-		anonymous: anon,
-		objectOptions: opts,
+		anonymous:     anon,
+		ObjectOptions: opts,
 		typ:           typ,
 		value:         val,
 		indirect:      indirect,

@@ -5,10 +5,19 @@ import (
 	"reflect"
 )
 
+type ObjectOptions struct {
+	hashKey     string
+	hashField   string
+	hashPrefix  string
+	reference   string
+	json        bool
+	elemNonJson bool
+}
+
 func doLoadCommands(conn redis.Conn, ns string, obj *compoundObject) error {
 	var objs []*compoundObject
-
 	obj.getDescendants(&objs)
+
 	for _, o := range objs {
 		err := o.doRedisHMGet(conn, ns)
 		if err != nil {
@@ -19,15 +28,15 @@ func doLoadCommands(conn redis.Conn, ns string, obj *compoundObject) error {
 	return nil
 }
 
-func Load(conn redis.Conn, ns string, key string, data interface{}) error {
+func Load(conn redis.Conn, ns string, opts *ObjectOptions, i interface{}) error {
 	name := rootObjectName
 
-	t := reflect.TypeOf(data)
+	t := reflect.TypeOf(i)
 	if t == nil {
 		return NewErrorUnsupportedObjectType(name)
 	}
 
-	v := reflect.ValueOf(data)
+	v := reflect.ValueOf(i)
 	if !v.IsValid() {
 		return NewErrorUnsupportedObjectType(name)
 	}
@@ -38,14 +47,6 @@ func Load(conn redis.Conn, ns string, key string, data interface{}) error {
 		return NewErrorUnsupportedObjectType(name)
 	}
 
-	opts := &objectOptions{
-		hashPrefix:  "",
-		hashKey:     key,
-		hashField:   "",
-		reference:   "",
-		json:        false,
-		elemNonJson: false,
-	}
 	obj, err := newObject(name, nil, opts, typ, val, indirect, false)
 	if err != nil {
 		return err

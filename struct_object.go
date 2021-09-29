@@ -81,7 +81,7 @@ func (o *structObject) genHMGetArgs() []interface{} {
 	return args
 }
 
-func parseObjectOptions(t string, opts *objectOptions) bool {
+func parseObjectOptions(t string, opts *ObjectOptions) bool {
 	if t == "" {
 		return false
 	} else if t == "-" {
@@ -219,7 +219,7 @@ func (o *structObject) complete() error {
 			return NewErrorUnsupportedObjectType(fldNam)
 		}
 
-		fldOpts := &objectOptions{}
+		fldOpts := &ObjectOptions{}
 		if !isPrimitiveType(fldTyp) && !fldAnon {
 			// For primitive types, default to non json to improve performance,
 			// And for anonymous fields, default to non json to promote its
