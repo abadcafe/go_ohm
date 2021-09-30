@@ -9,9 +9,9 @@ type abstractObject interface {
 }
 
 type object struct {
-	name   string
+	name      string
 	anonymous bool
-	parent *compoundObject
+	parent    *compoundObject
 	*ObjectOptions
 
 	// Reflected concrete type of the object. If original reflected type is
@@ -49,7 +49,7 @@ type object struct {
 }
 
 var tagIdentifier = "go_ohm"
-var rootObjectName = "root object"
+var rootObjectName = "__root_object"
 
 func (o *object) isPlainObject() bool {
 	return (o.typ.Kind() != reflect.Struct && o.typ.Kind() != reflect.Map) ||
@@ -62,13 +62,7 @@ func (o *object) isPromotedObject() bool {
 }
 
 func (o *object) createIndirectValues() {
-	v := o.value
-	for i := 0; i < o.indirect; i++ {
-		t := v.Type().Elem()
-		p := reflect.New(t)
-		v.Set(p)
-		*v = p.Elem()
-	}
+	createIndirectValues(o.value, o.indirect)
 }
 
 func isIgnoredType(typ reflect.Type) bool {
@@ -107,6 +101,15 @@ func advanceIndirectTypeAndValue(typ reflect.Type,
 	}
 
 	return typ, val, indirect
+}
+
+func createIndirectValues(v *reflect.Value, indirect int) {
+	for i := 0; i < indirect; i++ {
+		t := v.Type().Elem()
+		p := reflect.New(t)
+		v.Set(p)
+		*v = p.Elem()
+	}
 }
 
 func newObject(name string, parent *compoundObject, opts *ObjectOptions,

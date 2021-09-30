@@ -129,8 +129,9 @@ func TestLoad(t *testing.T) {
 		S5     **test2   `go_ohm:"hash_field=s5,hash_key=test2,non_json"`
 		*test2           // ignored
 		test3  `go_ohm:"hash_key=test3"`
-		B      bool   `go_ohm:"hash_field=b"`
-		B2     []byte `go_ohm:"hash_field=b2"`
+		B      bool            `go_ohm:"hash_field=b"`
+		B2     []byte          `go_ohm:"hash_field=b2"`
+		M      *map[string]int `go_ohm:"hash_prefix=test4,hash_key=test4,non_json"`
 	}
 
 	t.Run("test Load() unsupported types", func(t *testing.T) {
@@ -180,6 +181,7 @@ func TestLoad(t *testing.T) {
 	})
 
 	t.Run("test Load() normal", func(t *testing.T) {
+		s.HSet("test#test4#test4", "ss", "2")
 		s.HSet("test#test3#test2", "I3", "2")
 		s.HSet("test#test2#test2", "I", "2")
 		s.HSet(
@@ -202,7 +204,7 @@ func TestLoad(t *testing.T) {
 		} else if t1.i != 0 || t1.I2 != 2 || **t1.F != 2.0 || **t1.S != "2" ||
 			t1.S2 != nil || **t1.S3 != "2" || (**t1.S4).I != 2 ||
 			(**t1.S5).I != 2 || t1.I3 == 2 || t1.B != true ||
-			!bytes.Equal(t1.B2, []byte("2")) {
+			!bytes.Equal(t1.B2, []byte("2")) || (*t1.M)["ss"] == 2 {
 			t.Errorf("wrong value: %++v, %v", t1, t1.S3)
 		}
 	})
