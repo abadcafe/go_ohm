@@ -36,8 +36,7 @@ func (o *structObject) getPlainFields() []*plainObject {
 
 	for _, obj := range o.fields {
 		if obj.isPromotedObject() {
-			so := obj.abstractObject.(*compoundObject).abstractCompoundObject.
-				(*structObject)
+			so := obj.abstractObject.(*compoundObject).abstractCompoundObject.(*structObject)
 			ret = append(ret, so.getPlainFields()...)
 		} else if obj.isPlainObject() {
 			po := obj.abstractObject.(*plainObject)
@@ -53,8 +52,7 @@ func (o *structObject) getForeignObjects() []*compoundObject {
 
 	for _, obj := range o.fields {
 		if obj.isPromotedObject() {
-			so := obj.abstractObject.(*compoundObject).abstractCompoundObject.
-				(*structObject)
+			so := obj.abstractObject.(*compoundObject).abstractCompoundObject.(*structObject)
 			ret = append(ret, so.getForeignObjects()...)
 		} else if !obj.isPlainObject() {
 			ret = append(ret, obj.abstractObject.(*compoundObject))

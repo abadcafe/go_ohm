@@ -62,6 +62,6 @@ func Load(conn redis.Conn, ns string, opts *ObjectOptions, i interface{}) error 
 	return obj.renderValue()
 }
 
-func Save(key string, obj interface{}) error {
+func Save(conn redis.Conn, ns string, opts *ObjectOptions, i interface{}) error {
 	return nil
 }

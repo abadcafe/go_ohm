@@ -50,7 +50,11 @@ func (o *plainObject) renderValue() error {
 	case reflect.Int32:
 		fallthrough
 	case reflect.Int64:
-		n, _ := strconv.Atoi(string(o.reply))
+		n, err := strconv.Atoi(string(o.reply))
+		if err != nil {
+			return NewErrorUnsupportedObjectType(o.name)
+		}
+
 		o.value.SetInt(int64(n))
 
 	case reflect.Uint:
@@ -64,23 +68,39 @@ func (o *plainObject) renderValue() error {
 	case reflect.Uint64:
 		fallthrough
 	case reflect.Uintptr:
-		n, _ := strconv.Atoi(string(o.reply))
+		n, err := strconv.Atoi(string(o.reply))
+		if err != nil {
+			return NewErrorUnsupportedObjectType(o.name)
+		}
+
 		o.value.SetUint(uint64(n))
 
 	case reflect.Bool:
-		n, _ := strconv.Atoi(string(o.reply))
+		n, err := strconv.Atoi(string(o.reply))
+		if err != nil {
+			return NewErrorUnsupportedObjectType(o.name)
+		}
+
 		o.value.SetBool(n >= 1)
 
 	case reflect.Float32:
 		fallthrough
 	case reflect.Float64:
-		n, _ := strconv.ParseFloat(string(o.reply), 64)
+		n, err := strconv.ParseFloat(string(o.reply), 64)
+		if err != nil {
+			return NewErrorUnsupportedObjectType(o.name)
+		}
+
 		o.value.SetFloat(n)
 
 	case reflect.Complex64:
 		fallthrough
 	case reflect.Complex128:
-		n, _ := strconv.ParseComplex(string(o.reply), 128)
+		n, err := strconv.ParseComplex(string(o.reply), 128)
+		if err != nil {
+			return NewErrorUnsupportedObjectType(o.name)
+		}
+
 		o.value.SetComplex(n)
 
 	case reflect.Slice:
