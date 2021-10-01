@@ -69,7 +69,7 @@ func (o *structObject) getDescendants(objList *[]*compoundObject) {
 	}
 }
 
-func (o *structObject) genHMGetArgs() []interface{} {
+func (o *structObject) genHashFields() []interface{} {
 	var args []interface{}
 
 	for _, obj := range o.getPlainFields() {
@@ -77,6 +77,26 @@ func (o *structObject) genHMGetArgs() []interface{} {
 	}
 
 	return args
+}
+
+func (o *structObject) genHashFieldValuePairs() ([]interface{}, error) {
+	var args []interface{}
+
+	for _, obj := range o.getPlainFields() {
+		k := obj.genHashField()
+		if k == "" {
+			return nil, NewErrorUnsupportedObjectType(obj.name)
+		}
+
+		v, err := obj.genHashValue()
+		if err != nil {
+			return nil, NewErrorUnsupportedObjectType(obj.name)
+		}
+
+		args = append(args, k, v)
+	}
+
+	return args, nil
 }
 
 func parseObjectOptions(t string, opts *ObjectOptions) bool {
@@ -90,8 +110,8 @@ func parseObjectOptions(t string, opts *ObjectOptions) bool {
 		"hash_prefix": func(v string) {
 			opts.hashPrefix = v
 		},
-		"hash_key": func(v string) {
-			opts.hashKey = v
+		"hash_name": func(v string) {
+			opts.hashName = v
 		},
 		"hash_field": func(v string) {
 			opts.hashField = v
@@ -130,14 +150,14 @@ func parseObjectOptions(t string, opts *ObjectOptions) bool {
 	return false
 }
 
-func (o *structObject) doRedisHMGet(conn redis.Conn, ns string) error {
-	key, err := o.genRedisHashKey(ns)
+func (o *structObject) doRedisLoad(conn redis.Conn, ns string) error {
+	key, err := o.genRedisKey(ns)
 	if err != nil {
 		return err
 	}
 
 	args := []interface{}{key}
-	args = append(args, o.genHMGetArgs()...)
+	args = append(args, o.genHashFields()...)
 	if len(args) <= 1 {
 		// nothing to do.
 		return nil

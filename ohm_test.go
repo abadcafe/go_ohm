@@ -1,9 +1,10 @@
 package go_ohm
 
 import (
-	"bytes"
 	"errors"
+	"fmt"
 	"github.com/alicebob/miniredis/v2"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gomodule/redigo/redis"
 	"reflect"
 	"testing"
@@ -101,14 +102,14 @@ func TestAdvanceIndirectTypeAndValue(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
-	s, err := miniredis.Run()
+	redisServer, err := miniredis.Run()
 	if err != nil {
 		panic(err)
 	}
-	defer s.Close()
+	defer redisServer.Close()
 
-	s.FlushAll()
-	c, err := redis.Dial("tcp", s.Addr())
+	redisServer.FlushAll()
+	c, err := redis.Dial("tcp", redisServer.Addr())
 
 	type test3 struct {
 		I3 int
@@ -126,37 +127,37 @@ func TestLoad(t *testing.T) {
 		S2     **string  `go_ohm:"-"` // ignored
 		S3     **string  `go_ohm:"hash_field=s3,json"`
 		S4     **test2   `go_ohm:"hash_field=s4"`
-		S5     **test2   `go_ohm:"hash_field=s5,hash_key=test2,non_json"`
+		S5     **test2   `go_ohm:"hash_field=s5,hash_name=test2,non_json"`
 		*test2           // ignored
-		test3  `go_ohm:"hash_key=test3"`
+		test3  `go_ohm:"hash_name=test3"`
 		B      bool            `go_ohm:"hash_field=b"`
 		B2     []byte          `go_ohm:"hash_field=b2"`
-		M      *map[string]int `go_ohm:"hash_prefix=test4,hash_key=test4,non_json"`
+		M      *map[string]int `go_ohm:"hash_prefix=test4,hash_name=test4,non_json"`
 	}
 
 	t.Run("test Load() unsupported types", func(t *testing.T) {
 		var e *ErrorUnsupportedObjectType
 
 		var v1 interface{}
-		err := Load(c, "test", &ObjectOptions{hashKey: "test1"}, v1)
+		err := Load(c, "test", &ObjectOptions{hashName: "test1"}, v1)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		var v2 chan int
-		err = Load(c, "test", &ObjectOptions{hashKey: "test1"}, v2)
+		err = Load(c, "test", &ObjectOptions{hashName: "test1"}, v2)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		var v3 chan int
-		err = Load(c, "test", &ObjectOptions{hashKey: "test1"}, &v3)
+		err = Load(c, "test", &ObjectOptions{hashName: "test1"}, &v3)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		v4 := struct{ A **interface{} }{}
-		err = Load(c, "test", &ObjectOptions{hashKey: "test1"}, &v4)
+		err = Load(c, "test", &ObjectOptions{hashName: "test1"}, &v4)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
@@ -171,41 +172,67 @@ func TestLoad(t *testing.T) {
 
 	t.Run("test Load() nil", func(t *testing.T) {
 		t1 := &test1{}
-		err := Load(c, "test", &ObjectOptions{hashKey: "test1"}, t1)
+		err := Load(c, "test", &ObjectOptions{hashName: "test1"}, t1)
 		if err != nil {
 			t.Error(err)
-		} else if t1.i != 0 || t1.I2 != 0 || t1.F != nil || t1.S != nil ||
-			t1.S2 != nil || t1.test2 != nil || t1.B != false || t1.B2 != nil {
+		} else if reflect.DeepEqual(t1, &test1{}){
 			t.Error("wrong value: ", t1)
 		}
 	})
 
-	t.Run("test Load() normal", func(t *testing.T) {
-		s.HSet("test#test4#test4", "ss", "2")
-		s.HSet("test#test3#test2", "I3", "2")
-		s.HSet("test#test2#test2", "I", "2")
-		s.HSet(
-			"test#test1#test1",
-			"i", "2",
-			"i2", "2",
-			"f", "2.0",
-			"s", "2",
-			"s2", "2",
-			"s3", "\"2\"",
-			"s4", "{\"I\": 2}",
-			"c", "2",
-			"b", "2",
-			"b2", "2",
-		)
-		t1 := &test1{}
-		err = Load(c, "test", &ObjectOptions{hashKey: "test1"}, t1)
+	t.Run("test Save() and Load() normally", func(t *testing.T) {
+		f := float32(2.0)
+		fp := &f
+		ssss := "2"
+		sp := &ssss
+		s4 := &test2{I: 2}
+		t1 := &test1{
+			i: 0,
+			I2: 2,
+			F: &fp,
+			S: &sp,
+			S3: &sp,
+			S4: &s4,
+			S5: &s4,
+			test3: test3{I3: 2},
+			B: true,
+			B2: []byte("2"),
+			M: &map[string]int{"ss": 2},
+		}
+		t2 := &test1{}
+
+		err = Save(c, "test", &ObjectOptions{hashName: "test1"}, t1)
 		if err != nil {
 			t.Error(err)
-		} else if t1.i != 0 || t1.I2 != 2 || **t1.F != 2.0 || **t1.S != "2" ||
-			t1.S2 != nil || **t1.S3 != "2" || (**t1.S4).I != 2 ||
-			(**t1.S5).I != 2 || t1.I3 == 2 || t1.B != true ||
-			!bytes.Equal(t1.B2, []byte("2")) || (*t1.M)["ss"] == 2 {
-			t.Errorf("wrong value: %++v, %v", t1, t1.S3)
 		}
+
+		err = Load(c, "test", &ObjectOptions{hashName: "test1"}, t2)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if !reflect.DeepEqual(t1, t2) {
+			t.Errorf("wrong value: %+v, %+v", t1, t2)
+			fmt.Println("t1:")
+			spew.Dump(t1)
+			fmt.Println("t2:")
+			spew.Dump(t2)
+		}
+
+		err = Load(c, "test", &ObjectOptions{hashName: "test1"}, t1)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if !reflect.DeepEqual(t1, t2) {
+			t.Errorf("wrong value: %+v, %+v", t1, t2)
+			fmt.Println("t1:")
+			spew.Dump(t1)
+			fmt.Println("t2:")
+			spew.Dump(t2)
+		}
+
 	})
+
+	fmt.Println(redisServer.Dump())
 }

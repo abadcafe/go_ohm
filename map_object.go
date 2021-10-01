@@ -1,7 +1,7 @@
 package go_ohm
 
 import (
-	"encoding/json"
+	"fmt"
 	"github.com/gomodule/redigo/redis"
 	"reflect"
 	"strconv"
@@ -21,8 +21,8 @@ func (o *mapObject) getDescendants(objList *[]*compoundObject) {
 	*objList = append(*objList, o.compoundObject)
 }
 
-func (o *mapObject) doRedisHMGet(conn redis.Conn, prefix string) error {
-	key, err := o.genRedisHashKey(prefix)
+func (o *mapObject) doRedisLoad(conn redis.Conn, ns string) error {
+	key, err := o.genRedisKey(ns)
 	if err != nil {
 		return err
 	}
@@ -34,6 +34,25 @@ func (o *mapObject) doRedisHMGet(conn redis.Conn, prefix string) error {
 
 	o.reply = rep
 	return nil
+}
+
+func (o *mapObject) genHashFieldValuePairs() ([]interface{}, error) {
+	var cmdArgs []interface{}
+
+	iter := o.value.MapRange()
+	for iter.Next() {
+		k := fmt.Sprint(iter.Key().Interface())
+
+		vv := iter.Value()
+		v, err := jsonMarshalValue(&vv)
+		if err != nil {
+			return nil, NewErrorJsonFailed(o.name, err)
+		}
+
+		cmdArgs = append(cmdArgs, k, string(v))
+	}
+
+	return cmdArgs, nil
 }
 
 func (o *mapObject) newIndexValue(s string) (*reflect.Value, error) {
@@ -49,11 +68,10 @@ func (o *mapObject) newIndexValue(s string) (*reflect.Value, error) {
 	case reflect.Int32:
 		fallthrough
 	case reflect.Int64:
-		i, err := strconv.Atoi(s)
+		i, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
 			return nil, err
 		}
-
 		v = reflect.ValueOf(i).Convert(o.indexTyp)
 
 	case reflect.Uint:
@@ -67,12 +85,11 @@ func (o *mapObject) newIndexValue(s string) (*reflect.Value, error) {
 	case reflect.Uint64:
 		fallthrough
 	case reflect.Uintptr:
-		i, err := strconv.Atoi(s)
+		u, err := strconv.ParseUint(s, 10, 64)
 		if err != nil {
 			return nil, err
 		}
-
-		v = reflect.ValueOf(i).Convert(o.indexTyp)
+		v = reflect.ValueOf(u).Convert(o.indexTyp)
 
 	case reflect.String:
 		v = reflect.ValueOf(s)
@@ -83,32 +100,39 @@ func (o *mapObject) newIndexValue(s string) (*reflect.Value, error) {
 
 func (o *mapObject) renderValue() error {
 	o.createIndirectValues()
+	if o.value.IsNil() {
+		o.value.Set(reflect.MakeMap(o.value.Type()))
+	}
 
 	if o.elemNonJson {
 		return NewErrorUnsupportedObjectType(o.name)
 	}
 
-	for k, v := range o.reply {
-		rk, err := o.newIndexValue(k)
+	for rk, rv := range o.reply {
+		k, err := o.newIndexValue(rk)
 		if err != nil {
 			return NewErrorUnsupportedObjectType(o.name)
 		}
 
-		rv := o.value.MapIndex(*rk)
-		if !rv.IsValid() {
-			rv = reflect.New(o.typ.Elem())
+		v := o.value.MapIndex(*k)
+		p := reflect.New(o.typ.Elem())
+		if v.IsValid() {
+			p.Elem().Set(v)
 		}
+		v = p.Elem()
 
-		vt, vv, vi := advanceIndirectTypeAndValue(rv.Type(), &rv)
+		vt, vv, vi := advanceIndirectTypeAndValue(v.Type(), &v)
 		if isIgnoredType(vt) {
 			return NewErrorUnsupportedObjectType(o.name)
 		}
-
 		createIndirectValues(vv, vi)
-		err = json.Unmarshal([]byte(v), vv.Addr().Interface())
+
+		err = jsonUnmarshalValue([]byte(rv), vv)
 		if err != nil {
 			return NewErrorJsonFailed(o.name, err)
 		}
+
+		o.value.SetMapIndex(*k, v)
 	}
 
 	return nil

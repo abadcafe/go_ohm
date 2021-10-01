@@ -58,7 +58,7 @@ func (o *object) isPlainObject() bool {
 
 func (o *object) isPromotedObject() bool {
 	return o.typ.Kind() == reflect.Struct && o.anonymous && !o.json &&
-		o.reference == "" && o.hashKey == ""
+		o.reference == "" && o.hashName == ""
 }
 
 func (o *object) createIndirectValues() {
@@ -107,7 +107,7 @@ func createIndirectValues(v *reflect.Value, indirect int) {
 		t := v.Type().Elem()
 		p := reflect.New(t)
 		v.Set(p)
-		*v = p.Elem()
+		*v = v.Elem()
 	}
 }
 

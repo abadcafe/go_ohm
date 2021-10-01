@@ -8,7 +8,8 @@ import (
 type abstractCompoundObject interface {
 	abstractObject
 	getDescendants(objList *[]*compoundObject)
-	doRedisHMGet(conn redis.Conn, ns string) error
+	doRedisLoad(conn redis.Conn, ns string) error
+	genHashFieldValuePairs() ([]interface{}, error)
 }
 
 type compoundObject struct {
@@ -21,14 +22,13 @@ func (o *compoundObject) genHashPrefix() string {
 	if o.hashPrefix != "" {
 		return o.hashPrefix
 	}
-
 	return o.typ.Name()
 }
 
 // The caller should check if return value is "".
-func (o *compoundObject) genHashKey() string {
-	if o.hashKey != "" {
-		return o.hashKey
+func (o *compoundObject) genHashName() string {
+	if o.hashName != "" {
+		return o.hashName
 	}
 
 	ref := o.reference
@@ -54,15 +54,36 @@ func (o *compoundObject) genHashKey() string {
 	return string(po.reply)
 }
 
-func (o *compoundObject) genRedisHashKey(prefix string) (string, error) {
-	key := o.genHashKey()
+func (o *compoundObject) genRedisKey(ns string) (string, error) {
+	key := o.genHashName()
 	if key == "" {
 		return "", NewErrorObjectWithoutHashKey(o.name)
 	}
 
 	hashPrefix := o.genHashPrefix()
-	key = strings.Join([]string{prefix, hashPrefix, key}, "#")
-	return key, nil
+	redisKey := strings.Join([]string{ns, hashPrefix, key}, "#")
+	return redisKey, nil
+}
+
+func (o *compoundObject) doRedisSave(conn redis.Conn, ns string) error {
+	key, err := o.genRedisKey(ns)
+	if err != nil {
+		return err
+	}
+
+	cmdArgs, err := o.genHashFieldValuePairs()
+	if err != nil {
+		return err
+	}
+
+	args := []interface{}{key}
+	args = append(args, cmdArgs...)
+	_, err = conn.Do("HMSET", args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func newCompoundObject(o *object) (*compoundObject, error) {

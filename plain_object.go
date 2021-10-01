@@ -1,7 +1,7 @@
 package go_ohm
 
 import (
-	"encoding/json"
+	"fmt"
 	"reflect"
 	"strconv"
 )
@@ -17,8 +17,29 @@ func (o *plainObject) genHashField() string {
 	if o.hashField != "" {
 		return o.hashField
 	}
-
 	return o.name
+}
+
+func (o *plainObject) genHashValue() (string, error) {
+	if o.value == nil || !o.value.IsValid() || o.indirect > 0 {
+		return "", nil
+	}
+
+	if o.json {
+		bs, err := jsonMarshalValue(o.value)
+		if err != nil {
+			return "", NewErrorJsonFailed(o.name, err)
+		}
+
+		return string(bs), nil
+	}
+
+	if o.typ.Kind() == reflect.Slice && o.typ.Elem().Kind() == reflect.Uint8 {
+		// byte slice.
+		return string(o.value.Bytes()), nil
+	}
+
+	return fmt.Sprint(o.value.Interface()), nil
 }
 
 func (o *plainObject) renderValue() error {
@@ -29,11 +50,10 @@ func (o *plainObject) renderValue() error {
 	o.createIndirectValues()
 
 	if o.json {
-		err := json.Unmarshal(o.reply, o.value.Addr().Interface())
+		err := jsonUnmarshalValue(o.reply, o.value)
 		if err != nil {
 			return NewErrorJsonFailed(o.name, err)
 		}
-
 		return nil
 	}
 
@@ -50,12 +70,11 @@ func (o *plainObject) renderValue() error {
 	case reflect.Int32:
 		fallthrough
 	case reflect.Int64:
-		n, err := strconv.Atoi(string(o.reply))
+		i, err := strconv.Atoi(string(o.reply))
 		if err != nil {
 			return NewErrorUnsupportedObjectType(o.name)
 		}
-
-		o.value.SetInt(int64(n))
+		o.value.SetInt(int64(i))
 
 	case reflect.Uint:
 		fallthrough
@@ -68,40 +87,36 @@ func (o *plainObject) renderValue() error {
 	case reflect.Uint64:
 		fallthrough
 	case reflect.Uintptr:
-		n, err := strconv.Atoi(string(o.reply))
+		u, err := strconv.Atoi(string(o.reply))
 		if err != nil {
 			return NewErrorUnsupportedObjectType(o.name)
 		}
-
-		o.value.SetUint(uint64(n))
+		o.value.SetUint(uint64(u))
 
 	case reflect.Bool:
-		n, err := strconv.Atoi(string(o.reply))
+		b, err := strconv.ParseBool(string(o.reply))
 		if err != nil {
 			return NewErrorUnsupportedObjectType(o.name)
 		}
-
-		o.value.SetBool(n >= 1)
+		o.value.SetBool(b)
 
 	case reflect.Float32:
 		fallthrough
 	case reflect.Float64:
-		n, err := strconv.ParseFloat(string(o.reply), 64)
+		f, err := strconv.ParseFloat(string(o.reply), 64)
 		if err != nil {
 			return NewErrorUnsupportedObjectType(o.name)
 		}
-
-		o.value.SetFloat(n)
+		o.value.SetFloat(f)
 
 	case reflect.Complex64:
 		fallthrough
 	case reflect.Complex128:
-		n, err := strconv.ParseComplex(string(o.reply), 128)
+		c, err := strconv.ParseComplex(string(o.reply), 128)
 		if err != nil {
 			return NewErrorUnsupportedObjectType(o.name)
 		}
-
-		o.value.SetComplex(n)
+		o.value.SetComplex(c)
 
 	case reflect.Slice:
 		if o.typ.Elem().Kind() == reflect.Uint8 {
