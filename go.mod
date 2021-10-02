@@ -1,4 +1,4 @@
-module go_ohm
+module github.com/abadcafe/go_ohm
 
 go 1.17
 
