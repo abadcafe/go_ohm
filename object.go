@@ -53,12 +53,12 @@ var rootObjectName = "__root_object"
 
 func (o *object) isPlainObject() bool {
 	return (o.typ.Kind() != reflect.Struct && o.typ.Kind() != reflect.Map) ||
-		o.json
+		o.Json
 }
 
 func (o *object) isPromotedObject() bool {
-	return o.typ.Kind() == reflect.Struct && o.anonymous && !o.json &&
-		o.reference == "" && o.hashName == ""
+	return o.typ.Kind() == reflect.Struct && o.anonymous && !o.Json &&
+		o.Reference == "" && o.HashName == ""
 }
 
 func (o *object) createIndirectValues() {

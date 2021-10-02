@@ -14,8 +14,8 @@ type plainObject struct {
 }
 
 func (o *plainObject) genHashField() string {
-	if o.hashField != "" {
-		return o.hashField
+	if o.HashField != "" {
+		return o.HashField
 	}
 	return o.name
 }
@@ -25,7 +25,7 @@ func (o *plainObject) genHashValue() (string, error) {
 		return "", nil
 	}
 
-	if o.json {
+	if o.Json {
 		bs, err := jsonMarshalValue(o.value)
 		if err != nil {
 			return "", NewErrorJsonFailed(o.name, err)
@@ -49,7 +49,7 @@ func (o *plainObject) renderValue() error {
 
 	o.createIndirectValues()
 
-	if o.json {
+	if o.Json {
 		err := jsonUnmarshalValue(o.reply, o.value)
 		if err != nil {
 			return NewErrorJsonFailed(o.name, err)

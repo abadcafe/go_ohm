@@ -108,28 +108,28 @@ func parseObjectOptions(t string, opts *ObjectOptions) bool {
 
 	processors := map[string]func(string){
 		"hash_prefix": func(v string) {
-			opts.hashPrefix = v
+			opts.HashPrefix = v
 		},
 		"hash_name": func(v string) {
-			opts.hashName = v
+			opts.HashName = v
 		},
 		"hash_field": func(v string) {
-			opts.hashField = v
+			opts.HashField = v
 		},
 		"reference": func(v string) {
-			opts.reference = v
+			opts.Reference = v
 		},
 		"json": func(v string) {
-			opts.json = true
+			opts.Json = true
 		},
 		"non_json": func(v string) {
-			opts.json = false
+			opts.Json = false
 		},
 		"elem_json": func(v string) {
-			opts.elemNonJson = false
+			opts.ElemNonJson = false
 		},
 		"elem_non_json": func(v string) {
-			opts.elemNonJson = true
+			opts.ElemNonJson = true
 		},
 	}
 
@@ -242,7 +242,7 @@ func (o *structObject) complete() error {
 			// For primitive types, default to non json to improve performance,
 			// And for anonymous fields, default to non json to promote its
 			// fields.
-			fldOpts.json = true
+			fldOpts.Json = true
 		}
 
 		ignore := parseObjectOptions(fld.Tag.Get(tagIdentifier), fldOpts)

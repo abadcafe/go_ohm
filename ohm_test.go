@@ -139,25 +139,25 @@ func TestLoad(t *testing.T) {
 		var e *ErrorUnsupportedObjectType
 
 		var v1 interface{}
-		err := Load(c, "test", &ObjectOptions{hashName: "test1"}, v1)
+		err := Load(c, "test", &ObjectOptions{HashName: "test1"}, v1)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		var v2 chan int
-		err = Load(c, "test", &ObjectOptions{hashName: "test1"}, v2)
+		err = Load(c, "test", &ObjectOptions{HashName: "test1"}, v2)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		var v3 chan int
-		err = Load(c, "test", &ObjectOptions{hashName: "test1"}, &v3)
+		err = Load(c, "test", &ObjectOptions{HashName: "test1"}, &v3)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
 
 		v4 := struct{ A **interface{} }{}
-		err = Load(c, "test", &ObjectOptions{hashName: "test1"}, &v4)
+		err = Load(c, "test", &ObjectOptions{HashName: "test1"}, &v4)
 		if !errors.As(err, &e) {
 			t.Error(err)
 		}
@@ -172,10 +172,10 @@ func TestLoad(t *testing.T) {
 
 	t.Run("test Load() nil", func(t *testing.T) {
 		t1 := &test1{}
-		err := Load(c, "test", &ObjectOptions{hashName: "test1"}, t1)
+		err := Load(c, "test", &ObjectOptions{HashName: "test1"}, t1)
 		if err != nil {
 			t.Error(err)
-		} else if reflect.DeepEqual(t1, &test1{}){
+		} else if reflect.DeepEqual(t1, &test1{}) {
 			t.Error("wrong value: ", t1)
 		}
 	})
@@ -187,26 +187,26 @@ func TestLoad(t *testing.T) {
 		sp := &ssss
 		s4 := &test2{I: 2}
 		t1 := &test1{
-			i: 0,
-			I2: 2,
-			F: &fp,
-			S: &sp,
-			S3: &sp,
-			S4: &s4,
-			S5: &s4,
+			i:     0,
+			I2:    2,
+			F:     &fp,
+			S:     &sp,
+			S3:    &sp,
+			S4:    &s4,
+			S5:    &s4,
 			test3: test3{I3: 2},
-			B: true,
-			B2: []byte("2"),
-			M: &map[string]int{"ss": 2},
+			B:     true,
+			B2:    []byte("2"),
+			M:     &map[string]int{"ss": 2},
 		}
 		t2 := &test1{}
 
-		err = Save(c, "test", &ObjectOptions{hashName: "test1"}, t1)
+		err = Save(c, "test", &ObjectOptions{HashName: "test1"}, t1)
 		if err != nil {
 			t.Error(err)
 		}
 
-		err = Load(c, "test", &ObjectOptions{hashName: "test1"}, t2)
+		err = Load(c, "test", &ObjectOptions{HashName: "test1"}, t2)
 		if err != nil {
 			t.Error(err)
 		}
@@ -219,7 +219,7 @@ func TestLoad(t *testing.T) {
 			spew.Dump(t2)
 		}
 
-		err = Load(c, "test", &ObjectOptions{hashName: "test1"}, t1)
+		err = Load(c, "test", &ObjectOptions{HashName: "test1"}, t1)
 		if err != nil {
 			t.Error(err)
 		}

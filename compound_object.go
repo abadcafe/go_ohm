@@ -19,19 +19,19 @@ type compoundObject struct {
 
 // The caller should check if return value is "".
 func (o *compoundObject) genHashPrefix() string {
-	if o.hashPrefix != "" {
-		return o.hashPrefix
+	if o.HashPrefix != "" {
+		return o.HashPrefix
 	}
 	return o.typ.Name()
 }
 
 // The caller should check if return value is "".
 func (o *compoundObject) genHashName() string {
-	if o.hashName != "" {
-		return o.hashName
+	if o.HashName != "" {
+		return o.HashName
 	}
 
-	ref := o.reference
+	ref := o.Reference
 	if ref == "" || o.parent == nil {
 		return ""
 	}

@@ -104,7 +104,7 @@ func (o *mapObject) renderValue() error {
 		o.value.Set(reflect.MakeMap(o.value.Type()))
 	}
 
-	if o.elemNonJson {
+	if o.ElemNonJson {
 		return NewErrorUnsupportedObjectType(o.name)
 	}
 

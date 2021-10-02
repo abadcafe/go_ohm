@@ -6,12 +6,12 @@ import (
 )
 
 type ObjectOptions struct {
-	hashName    string
-	hashField   string
-	hashPrefix  string
-	reference   string
-	json        bool
-	elemNonJson bool
+	HashName    string
+	HashField   string
+	HashPrefix  string
+	Reference   string
+	Json        bool
+	ElemNonJson bool
 }
 
 func genObjectList(i interface{}, opts *ObjectOptions) ([]*compoundObject, error) {
