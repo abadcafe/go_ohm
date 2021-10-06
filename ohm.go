@@ -26,8 +26,7 @@ import (
 // The struct tag are parsed as a `ObjectOptions` internally, and customized
 // field `A`'s mapping result.
 type ObjectOptions struct {
-	// Redis hash's name, for map and struct(A.K.A. compound types). Default is
-	// field name.
+	// Redis hash's name, for map and struct only. Default is field name.
 	HashName string
 
 	// Redis hash's field, for primitive types and jsonified compound types,
@@ -41,10 +40,14 @@ type ObjectOptions struct {
 	// value.
 	Reference string
 
-	// Jsonify the struct field, and store as a hash field.
+	// Jsonify the struct field, and store as a hash field. This option
+	// corresponded two struct tag options: "json" and "non_json". For compound
+	// types, includes slice(except byte slice), array, map and struct, default
+	// is "json", and for other types default is "non_json".
 	Json        bool
 
-	// Don't Jsonify elements of map. Only for field which type is map.
+	// Don't Jsonify elements of map. Only for field which type is map. default
+	// is jsonify all types.
 	ElemNonJson bool
 }
 
