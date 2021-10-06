@@ -142,7 +142,7 @@ func newObject(name string, parent *compoundObject, opts *ObjectOptions,
 		}
 		_, err = newMapObject(co)
 	} else {
-		err = NewErrorUnsupportedObjectType(name)
+		err = newErrorUnsupportedObjectType(name)
 	}
 	if err != nil {
 		return nil, err

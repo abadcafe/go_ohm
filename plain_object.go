@@ -28,7 +28,7 @@ func (o *plainObject) genHashValue() (string, error) {
 	if o.Json {
 		bs, err := jsonMarshalValue(o.value)
 		if err != nil {
-			return "", NewErrorJsonFailed(o.name, err)
+			return "", newErrorJsonFailed(o.name, err)
 		}
 
 		return string(bs), nil
@@ -52,7 +52,7 @@ func (o *plainObject) renderValue() error {
 	if o.Json {
 		err := jsonUnmarshalValue(o.reply, o.value)
 		if err != nil {
-			return NewErrorJsonFailed(o.name, err)
+			return newErrorJsonFailed(o.name, err)
 		}
 		return nil
 	}
@@ -72,7 +72,7 @@ func (o *plainObject) renderValue() error {
 	case reflect.Int64:
 		i, err := strconv.Atoi(string(o.reply))
 		if err != nil {
-			return NewErrorUnsupportedObjectType(o.name)
+			return newErrorUnsupportedObjectType(o.name)
 		}
 		o.value.SetInt(int64(i))
 
@@ -89,14 +89,14 @@ func (o *plainObject) renderValue() error {
 	case reflect.Uintptr:
 		u, err := strconv.Atoi(string(o.reply))
 		if err != nil {
-			return NewErrorUnsupportedObjectType(o.name)
+			return newErrorUnsupportedObjectType(o.name)
 		}
 		o.value.SetUint(uint64(u))
 
 	case reflect.Bool:
 		b, err := strconv.ParseBool(string(o.reply))
 		if err != nil {
-			return NewErrorUnsupportedObjectType(o.name)
+			return newErrorUnsupportedObjectType(o.name)
 		}
 		o.value.SetBool(b)
 
@@ -105,7 +105,7 @@ func (o *plainObject) renderValue() error {
 	case reflect.Float64:
 		f, err := strconv.ParseFloat(string(o.reply), 64)
 		if err != nil {
-			return NewErrorUnsupportedObjectType(o.name)
+			return newErrorUnsupportedObjectType(o.name)
 		}
 		o.value.SetFloat(f)
 
@@ -114,7 +114,7 @@ func (o *plainObject) renderValue() error {
 	case reflect.Complex128:
 		c, err := strconv.ParseComplex(string(o.reply), 128)
 		if err != nil {
-			return NewErrorUnsupportedObjectType(o.name)
+			return newErrorUnsupportedObjectType(o.name)
 		}
 		o.value.SetComplex(c)
 

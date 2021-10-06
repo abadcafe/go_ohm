@@ -29,7 +29,7 @@ func (o *mapObject) doRedisLoad(conn redis.Conn, ns string) error {
 
 	rep, err := redis.StringMap(conn.Do("HGETALL", key))
 	if err != nil {
-		return NewErrorRedisCommandFailed(o.name, err)
+		return newErrorRedisCommandFailed(o.name, err)
 	}
 
 	o.reply = rep
@@ -46,7 +46,7 @@ func (o *mapObject) genHashFieldValuePairs() ([]interface{}, error) {
 		vv := iter.Value()
 		v, err := jsonMarshalValue(&vv)
 		if err != nil {
-			return nil, NewErrorJsonFailed(o.name, err)
+			return nil, newErrorJsonFailed(o.name, err)
 		}
 
 		cmdArgs = append(cmdArgs, k, string(v))
@@ -105,13 +105,13 @@ func (o *mapObject) renderValue() error {
 	}
 
 	if o.ElemNonJson {
-		return NewErrorUnsupportedObjectType(o.name)
+		return newErrorUnsupportedObjectType(o.name)
 	}
 
 	for rk, rv := range o.reply {
 		k, err := o.newIndexValue(rk)
 		if err != nil {
-			return NewErrorUnsupportedObjectType(o.name)
+			return newErrorUnsupportedObjectType(o.name)
 		}
 
 		// use reflect.New() to create a pointer to map's element, otherwise the
@@ -125,13 +125,13 @@ func (o *mapObject) renderValue() error {
 
 		vt, vv, vi := advanceIndirectTypeAndValue(v.Type(), &v)
 		if isIgnoredType(vt) {
-			return NewErrorUnsupportedObjectType(o.name)
+			return newErrorUnsupportedObjectType(o.name)
 		}
 		createIndirectValues(vv, vi)
 
 		err = jsonUnmarshalValue([]byte(rv), vv)
 		if err != nil {
-			return NewErrorJsonFailed(o.name, err)
+			return newErrorJsonFailed(o.name, err)
 		}
 
 		o.value.SetMapIndex(*k, v)
@@ -156,7 +156,7 @@ func (o *mapObject) complete() error {
 	case reflect.Uint64:
 	case reflect.String:
 	default:
-		return NewErrorUnsupportedObjectType(o.name)
+		return newErrorUnsupportedObjectType(o.name)
 	}
 
 	return nil

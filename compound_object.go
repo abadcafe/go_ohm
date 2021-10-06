@@ -57,7 +57,7 @@ func (o *compoundObject) genHashName() string {
 func (o *compoundObject) genRedisKey(ns string) (string, error) {
 	key := o.genHashName()
 	if key == "" {
-		return "", NewErrorObjectWithoutHashKey(o.name)
+		return "", newErrorObjectWithoutHashKey(o.name)
 	}
 
 	hashPrefix := o.genHashPrefix()

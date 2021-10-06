@@ -85,12 +85,12 @@ func (o *structObject) genHashFieldValuePairs() ([]interface{}, error) {
 	for _, obj := range o.getPlainFields() {
 		k := obj.genHashField()
 		if k == "" {
-			return nil, NewErrorUnsupportedObjectType(obj.name)
+			return nil, newErrorUnsupportedObjectType(obj.name)
 		}
 
 		v, err := obj.genHashValue()
 		if err != nil {
-			return nil, NewErrorUnsupportedObjectType(obj.name)
+			return nil, newErrorUnsupportedObjectType(obj.name)
 		}
 
 		args = append(args, k, v)
@@ -165,7 +165,7 @@ func (o *structObject) doRedisLoad(conn redis.Conn, ns string) error {
 
 	rep, err := redis.ByteSlices(conn.Do("HMGET", args...))
 	if err != nil {
-		return NewErrorRedisCommandFailed(o.name, err)
+		return newErrorRedisCommandFailed(o.name, err)
 	}
 
 	for i, po := range o.getPlainFields() {
@@ -234,7 +234,7 @@ func (o *structObject) complete() error {
 		fldTyp, fldVal, indirect := advanceIndirectTypeAndValue(fldTyp, fldVal)
 		if isIgnoredType(fldTyp) {
 			// do not support those types, skip.
-			return NewErrorUnsupportedObjectType(fldNam)
+			return newErrorUnsupportedObjectType(fldNam)
 		}
 
 		fldOpts := &ObjectOptions{}
