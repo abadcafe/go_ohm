@@ -114,6 +114,8 @@ func (o *mapObject) renderValue() error {
 			return NewErrorUnsupportedObjectType(o.name)
 		}
 
+		// use reflect.New() to create a pointer to map's element, otherwise the
+		// element was unaddressable and unsettable.
 		v := o.value.MapIndex(*k)
 		p := reflect.New(o.typ.Elem())
 		if v.IsValid() {
