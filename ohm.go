@@ -61,8 +61,8 @@ type ObjectOptions struct {
 //
 // `opts` specified how to deal with data struct in `i`. See `ObjectOptions`.
 //
-// `i` is data struct, currently it supports struct pointer and map. The map key
-// must be int, uint or string.
+// `i` is data struct, currently it supports struct pointer, map, and map
+// pointer. The map key must be int, uint or string.
 //
 // It returns `error` while failed.
 func Load(conn redis.Conn, ns string, opts *ObjectOptions, i interface{}) error {
