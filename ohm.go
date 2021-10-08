@@ -1,6 +1,6 @@
 // Package go_ohm is for "Object to redis hash" mapping.
 //
-// It use go's struct tag to indicate how to map a struct field to a redis hash
+// It uses go's struct tag to indicate how to map a struct field to a redis hash
 // field. And includes reference directive, which likes SQL's ForeignKey.
 //
 // See `ObjectOptions` to know all usable struct tags.
@@ -18,7 +18,7 @@ import (
 // behaviors, because `i` is the "root object" and is not a field of certain
 // struct, so can't use struct tag.
 //
-// Every option has a corresponding struct tag option, in sneak case. For
+// Every option has a corresponding struct tag option, in snake case. For
 // instance:
 //   type A struct {
 //     A int `go_ohm:"hash_name=a"`
