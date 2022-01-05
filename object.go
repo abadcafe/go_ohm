@@ -8,8 +8,14 @@ type abstractObject interface {
 	renderValue() error
 }
 
+const (
+	ObjectOpLoad uint = iota
+	ObjectOpSave
+)
+
 type object struct {
 	name      string
+	op        uint
 	anonymous bool
 	parent    *compoundObject
 	*ObjectOptions
@@ -111,11 +117,12 @@ func createIndirectValues(v *reflect.Value, indirect int) {
 	}
 }
 
-func newObject(name string, parent *compoundObject, opts *ObjectOptions,
+func newObject(name string, op uint, parent *compoundObject, opts *ObjectOptions,
 	typ reflect.Type, val *reflect.Value, indirect int, anon bool) (*object,
 	error) {
 	obj := &object{
 		name:          name,
+		op:            op,
 		anonymous:     anon,
 		ObjectOptions: opts,
 		typ:           typ,

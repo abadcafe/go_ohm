@@ -3,11 +3,12 @@ package go_ohm
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"testing"
+
 	"github.com/alicebob/miniredis/v2"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/gomodule/redigo/redis"
-	"reflect"
-	"testing"
 )
 
 func getTypeValue(i interface{}) (reflect.Type, *reflect.Value) {
@@ -206,17 +207,36 @@ func TestLoad(t *testing.T) {
 			t.Error(err)
 		}
 
+		err = Save(c, "test",
+			&ObjectOptions{HashPrefix: "test2", HashName: "test2"}, s4)
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = Save(c, "test",
+			&ObjectOptions{HashPrefix: "test3", HashName: "test3"}, &t1.test3)
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = Save(c, "test",
+			&ObjectOptions{HashPrefix: "test4", HashName: "test4"}, &t1.M)
+		if err != nil {
+			t.Error(err)
+		}
+
 		err = Load(c, "test", &ObjectOptions{HashName: "test1"}, t2)
 		if err != nil {
 			t.Error(err)
 		}
 
 		if !reflect.DeepEqual(t1, t2) {
-			t.Errorf("wrong value: %+v, %+v", t1, t2)
+			fmt.Println("wrong value:")
 			fmt.Println("t1:")
 			spew.Dump(t1)
 			fmt.Println("t2:")
 			spew.Dump(t2)
+			t.Error("loaded data not equal saved data")
 		}
 
 		err = Load(c, "test", &ObjectOptions{HashName: "test1"}, t1)
@@ -225,13 +245,13 @@ func TestLoad(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(t1, t2) {
-			t.Errorf("wrong value: %+v, %+v", t1, t2)
+			fmt.Println("wrong value:")
 			fmt.Println("t1:")
 			spew.Dump(t1)
 			fmt.Println("t2:")
 			spew.Dump(t2)
+			t.Error("loaded data not equal saved data")
 		}
-
 	})
 
 	fmt.Println(redisServer.Dump())

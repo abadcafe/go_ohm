@@ -2,9 +2,10 @@ package go_ohm
 
 import (
 	"fmt"
-	"github.com/gomodule/redigo/redis"
 	"reflect"
 	"strconv"
+
+	"github.com/gomodule/redigo/redis"
 )
 
 type mapObject struct {

@@ -1,8 +1,9 @@
 package go_ohm
 
 import (
-	"github.com/gomodule/redigo/redis"
 	"strings"
+
+	"github.com/gomodule/redigo/redis"
 )
 
 type abstractCompoundObject interface {

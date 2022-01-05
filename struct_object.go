@@ -1,9 +1,10 @@
 package go_ohm
 
 import (
-	"github.com/gomodule/redigo/redis"
 	"reflect"
 	"strings"
+
+	"github.com/gomodule/redigo/redis"
 )
 
 type structObject struct {
@@ -250,13 +251,15 @@ func (o *structObject) complete() error {
 			continue
 		}
 
-		fldObj, err := newObject(fldNam, o.compoundObject, fldOpts, fldTyp,
-			fldVal, indirect, fldAnon)
-		if err != nil {
-			return err
+		if o.op == ObjectOpLoad || fldOpts.Json ||
+			(fldTyp.Kind() != reflect.Struct && fldTyp.Kind() != reflect.Map) {
+			fldObj, err := newObject(fldNam, o.op, o.compoundObject, fldOpts,
+				fldTyp, fldVal, indirect, fldAnon)
+			if err != nil {
+				return err
+			}
+			o.addField(fldObj)
 		}
-
-		o.addField(fldObj)
 	}
 
 	return nil

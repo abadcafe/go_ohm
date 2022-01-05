@@ -7,8 +7,9 @@
 package go_ohm
 
 import (
-	"github.com/gomodule/redigo/redis"
 	"reflect"
+
+	"github.com/gomodule/redigo/redis"
 )
 
 // ObjectOptions is options for a struct field. Every struct field is a `Object`
@@ -44,7 +45,7 @@ type ObjectOptions struct {
 	// corresponded two struct tag options: "json" and "non_json". For compound
 	// types, includes slice(except byte slice), array, map and struct, default
 	// is "json", and for other types default is "non_json".
-	Json        bool
+	Json bool
 
 	// Don't Jsonify elements of map. Only for field which type is map. default
 	// is jsonify all types.
@@ -66,7 +67,7 @@ type ObjectOptions struct {
 //
 // It returns `error` while failed.
 func Load(conn redis.Conn, ns string, opts *ObjectOptions, i interface{}) error {
-	objs, err := genObjectList(i, opts)
+	objs, err := genObjectList(i, ObjectOpLoad, opts)
 	if err != nil {
 		return err
 	}
@@ -82,7 +83,7 @@ func Load(conn redis.Conn, ns string, opts *ObjectOptions, i interface{}) error 
 
 // Save data struct to redis hash. See Load() for argument explanation.
 func Save(conn redis.Conn, ns string, opts *ObjectOptions, i interface{}) error {
-	objs, err := genObjectList(i, opts)
+	objs, err := genObjectList(i, ObjectOpSave, opts)
 	if err != nil {
 		return err
 	}
@@ -90,7 +91,8 @@ func Save(conn redis.Conn, ns string, opts *ObjectOptions, i interface{}) error 
 	return doSaveCommands(conn, ns, objs)
 }
 
-func genObjectList(i interface{}, opts *ObjectOptions) ([]*compoundObject, error) {
+func genObjectList(i interface{}, op uint,
+	opts *ObjectOptions) ([]*compoundObject, error) {
 	name := rootObjectName
 
 	t := reflect.TypeOf(i)
@@ -109,7 +111,7 @@ func genObjectList(i interface{}, opts *ObjectOptions) ([]*compoundObject, error
 		return nil, newErrorUnsupportedObjectType(name)
 	}
 
-	obj, err := newObject(name, nil, opts, typ, val, indirect, false)
+	obj, err := newObject(name, op, nil, opts, typ, val, indirect, false)
 	if err != nil {
 		return nil, err
 	} else if obj.isPlainObject() {
